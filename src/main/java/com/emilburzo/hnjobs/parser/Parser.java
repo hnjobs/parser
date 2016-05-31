@@ -4,10 +4,13 @@ import com.emilburzo.hnjobs.http.HttpClient;
 import com.emilburzo.hnjobs.main.Main;
 import com.emilburzo.hnjobs.pojo.Job;
 import com.emilburzo.hnjobs.pojo.JobThread;
-import com.emilburzo.hnjobs.util.Constants;
 import com.emilburzo.hnjobs.util.DateUtil;
 import com.google.gson.Gson;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchType;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -27,6 +30,8 @@ import static com.emilburzo.hnjobs.util.Constants.*;
 public class Parser {
 
     private final static Logger logger = Logger.getLogger("Parser");
+
+    private static final int MONTHS_OLD_THRESHOLD = 2; // how many months ago is "old"
 
     private List<JobThread> threads = new ArrayList<>();
 
@@ -154,7 +159,7 @@ public class Parser {
     }
 
     private void saveJob(String id, Job job) {
-        IndexResponse response = Main.getClient().prepareIndex(Index.HNJOBS, Constants.Job.JOB, id)
+        IndexResponse response = Main.getClient().prepareIndex(Index.HNJOBS, Type.JOB, id)
                 .setSource(new Gson().toJson(job))
                 .get();
     }
@@ -171,7 +176,7 @@ public class Parser {
         Date threadDate = sdf.parse(s);
 
         Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.MONTH, -2);
+        cal.add(Calendar.MONTH, -MONTHS_OLD_THRESHOLD);
 
         return threadDate.before(cal.getTime());
     }
@@ -183,6 +188,25 @@ public class Parser {
      * @see Parser#isOld(java.lang.String)
      */
     private void cleanOldJobs() {
-        // TODO
+        SearchResponse response = Main.getClient().prepareSearch(Index.HNJOBS)
+                .setTypes(Type.JOB)
+                .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
+                .setQuery(QueryBuilders.matchAllQuery())
+                .setPostFilter(QueryBuilders.rangeQuery(Field.TIMESTAMP).lt(getMonthsAgo(MONTHS_OLD_THRESHOLD)))
+                .setExplain(false)
+                .execute()
+                .actionGet();
+
+        // delete matching documents
+        for (SearchHit hit : response.getHits()) {
+            Main.getClient().prepareDelete(Index.HNJOBS, Type.JOB, hit.getId()).get();
+        }
+    }
+
+    private long getMonthsAgo(int months) {
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.MONTH, -months);
+
+        return cal.getTimeInMillis();
     }
 }

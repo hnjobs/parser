@@ -12,12 +12,13 @@ public class Constants {
         public static final String HNJOBS = "hnjobs";
     }
 
-    public static class Job {
+    public static class Type {
         public static final String JOB = "job";
     }
 
     public static class Field {
-        public static final String FIELD_BODY = "body";
+        public static final String BODY = "body";
+        public static final String TIMESTAMP = "timestamp";
     }
 
     public static class Parse {
