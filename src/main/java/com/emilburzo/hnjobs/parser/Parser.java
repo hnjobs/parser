@@ -52,38 +52,30 @@ public class Parser {
         // pass the content to Jsoup for parsing
         Document doc = Jsoup.parse(content);
 
-        // submissions rows have the class name "athing"
-        Elements aThings = doc.getElementsByClass(Parse.SUBMISSION_ATHING);
+        // submissions rows have the class name "storylink"
+        Elements storylinks = doc.getElementsByClass(Parse.STORYLINK);
 
-        for (Element aThing : aThings) {
-            Elements titles = aThing.getElementsByClass(Parse.TITLE);
+        for (Element storyLink : storylinks) {
+            String linkId = storyLink.attr(Parse.HREF);
+            String linkText = storyLink.text();
 
-            for (Element title : titles) {
-                // exclude the "More" link
-                if (title.getElementsByClass(Parse.DEADMARK).isEmpty()) {
-                    continue;
-                }
+            // look only for "Who is hiring?" threads
+            // from the past two months
+            // i.e.: the last two submissions
+            if (linkText.contains(Parse.WHO_IS_HIRING) && !isOld(linkText)) {
+                logger.info(String.format("Found relevant thread: %s (%s)", linkText, linkId));
 
-                // the second child, after the "deadmark" is the anchor
-                Element link = title.child(1);
-
-                // which contains the item id
-                String linkId = link.attr(Parse.HREF);
-
-                // and the actual title
-                String linkText = link.text();
-
-                // look only for "Who is hiring?" threads
-                // from the past two months
-                // i.e.: the last two submissions
-                if (linkText.contains(Parse.WHO_IS_HIRING) && !isOld(linkText)) {
-                    threads.add(new JobThread(linkId, linkText));
-                }
+                threads.add(new JobThread(linkId, linkText));
             }
         }
     }
 
     private void parseJobThreads() throws IOException {
+        if (threads.isEmpty()) {
+            logger.warning("No job threads found");
+            return;
+        }
+
         for (JobThread thread : threads) {
             parseJobThread(thread);
         }
