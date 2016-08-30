@@ -19,6 +19,7 @@ public class Constants {
     public static class Field {
         public static final String BODY = "body";
         public static final String TIMESTAMP = "timestamp";
+        public static final String SRC = "src";
     }
 
     public static class Parse {

@@ -8,7 +8,8 @@ import com.emilburzo.hnjobs.util.DateUtil;
 import com.google.gson.Gson;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchType;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.query.ConstantScoreQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.jsoup.Jsoup;
@@ -18,11 +19,6 @@ import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
 import java.util.logging.Logger;
 
 import static com.emilburzo.hnjobs.util.Constants.*;
@@ -31,21 +27,20 @@ public class Parser {
 
     private final static Logger logger = Logger.getLogger("Parser");
 
-    private static final int MONTHS_OLD_THRESHOLD = 2; // how many months ago is "old"
+    private JobThread thread;
 
-    private List<JobThread> threads = new ArrayList<>();
-
-    private SimpleDateFormat sdf = new SimpleDateFormat("MMM yyyy");
+    private int jobs = 0;
+    private int jobsDeleted = 0;
 
     public Parser() throws IOException, ParseException {
-        loadJobThreads();
+        loadJobThread();
 
-        parseJobThreads();
+        parseJobThread();
 
         cleanOldJobs();
     }
 
-    private void loadJobThreads() throws IOException, ParseException {
+    private void loadJobThread() throws IOException, ParseException {
         // fetch submissions from the "whoishiring" user
         String content = HttpClient.getUrl(URL.WHOISHIRING_URL);
 
@@ -59,33 +54,33 @@ public class Parser {
             String linkId = storyLink.attr(Parse.HREF);
             String linkText = storyLink.text();
 
-            // look only for "Who is hiring?" threads
-            // from the past two months
-            // i.e.: the last two submissions
-            if (linkText.contains(Parse.WHO_IS_HIRING) && !isOld(linkText)) {
+            // look only for the last "Who is hiring?" thread
+            if (linkText.contains(Parse.WHO_IS_HIRING)) {
                 logger.info(String.format("Found relevant thread: %s (%s)", linkText, linkId));
 
-                threads.add(new JobThread(linkId, linkText));
+                thread = new JobThread(linkId, linkText);
+
+                return;
             }
         }
     }
 
-    private void parseJobThreads() throws IOException {
-        if (threads.isEmpty()) {
-            logger.warning("No job threads found");
+    private void parseJobThread() throws IOException {
+        if (thread == null) {
+            logger.warning("No job thread found");
             return;
         }
 
-        for (JobThread thread : threads) {
-            parseJobThread(thread);
-        }
+        parseJobThread(thread);
+
+        logger.info(String.format("Found %d jobs", jobs));
     }
 
     private void parseJobThread(JobThread thread) throws IOException {
         logger.info(String.format("Parsing job thread %s", thread.text));
 
         // get all the html content from the thread
-        String content = HttpClient.getUrl(URL.BASE_URL + thread.id);
+        String content = HttpClient.getUrl(URL.BASE_URL + thread.linkId);
 
         // parse it
         Document doc = Jsoup.parse(content);
@@ -112,7 +107,6 @@ public class Parser {
 
                 parseJob(aThing);
             }
-
         }
     }
 
@@ -137,17 +131,20 @@ public class Parser {
         body.getElementsByClass(Parse.REPLY).remove();
 
         // parse post id
-        String id = link.substring(link.indexOf("=") + 1);
+        String postId = link.substring(link.indexOf("=") + 1);
 
         // save everything neatly in a POJO so we can pass it to Gson when saving
         Job job = new Job();
         job.author = author;
         job.timestamp = DateUtil.getAbsoluteDate(linkAge).getTime();
+        job.src = thread.id;
         job.body = Jsoup.parse(body.toString()).text();
         job.bodyHtml = body.toString();
 
         // persist to elasticsearch
-        saveJob(id, job);
+        saveJob(postId, job);
+
+        jobs++;
     }
 
     private void saveJob(String id, Job job) {
@@ -157,48 +154,33 @@ public class Parser {
     }
 
     /**
-     * Parse the date from the submission title and return if the thread is too old or not
-     *
-     * @param title
-     * @return if a thread is too old or not
-     * @throws ParseException
-     */
-    private boolean isOld(String title) throws ParseException {
-        String s = title.substring(title.indexOf("(") + 1, title.indexOf(")"));
-        Date threadDate = sdf.parse(s);
-
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.MONTH, -MONTHS_OLD_THRESHOLD);
-
-        return threadDate.before(cal.getTime());
-    }
-
-
-    /**
      * remove job posts that are too old
-     *
-     * @see Parser#isOld(java.lang.String)
      */
     private void cleanOldJobs() {
-        SearchResponse response = Main.getClient().prepareSearch(Index.HNJOBS)
-                .setTypes(Type.JOB)
-                .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
-                .setQuery(QueryBuilders.matchAllQuery())
-                .setPostFilter(QueryBuilders.rangeQuery(Field.TIMESTAMP).lt(getMonthsAgo(MONTHS_OLD_THRESHOLD)))
-                .setExplain(false)
-                .execute()
-                .actionGet();
+        logger.info("Cleaning old jobs");
 
-        // delete matching documents
-        for (SearchHit hit : response.getHits()) {
-            Main.getClient().prepareDelete(Index.HNJOBS, Type.JOB, hit.getId()).get();
+        ConstantScoreQueryBuilder qb = QueryBuilders.constantScoreQuery(QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery(Field.SRC, thread.id)));
+
+        SearchResponse resp = Main.getClient().prepareSearch(Index.HNJOBS)
+                .setScroll(new TimeValue(60000))
+                .setQuery(qb)
+                .setSize(100).execute().actionGet();
+
+        while (true) {
+            for (SearchHit hit : resp.getHits().getHits()) {
+                Main.getClient().prepareDelete(Index.HNJOBS, Type.JOB, hit.getId()).get();
+
+                jobsDeleted++;
+            }
+
+            resp = Main.getClient().prepareSearchScroll(resp.getScrollId()).setScroll(new TimeValue(60000)).execute().actionGet();
+
+            // stop when there are no more hits
+            if (resp.getHits().getHits().length == 0) {
+                break;
+            }
         }
-    }
 
-    private long getMonthsAgo(int months) {
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.MONTH, -months);
-
-        return cal.getTimeInMillis();
+        logger.info(String.format("Deleted %d old jobs", jobsDeleted));
     }
 }

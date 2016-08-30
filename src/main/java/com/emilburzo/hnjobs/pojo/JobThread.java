@@ -2,11 +2,13 @@ package com.emilburzo.hnjobs.pojo;
 
 public class JobThread {
 
-    public String id;
+    public Long id;
+    public String linkId;
     public String text;
 
-    public JobThread(String id, String text) {
-        this.id = id;
+    public JobThread(String linkId, String text) {
+        this.linkId = linkId;
         this.text = text;
+        this.id = Long.valueOf(linkId.substring(linkId.indexOf("=") + 1));
     }
 }
