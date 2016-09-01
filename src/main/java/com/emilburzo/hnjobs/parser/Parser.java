@@ -162,6 +162,7 @@ public class Parser {
         ConstantScoreQueryBuilder qb = QueryBuilders.constantScoreQuery(QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery(Field.SRC, thread.id)));
 
         SearchResponse resp = Main.getClient().prepareSearch(Index.HNJOBS)
+                .setTypes(Type.JOB)
                 .setScroll(new TimeValue(60000))
                 .setQuery(qb)
                 .setSize(100).execute().actionGet();
