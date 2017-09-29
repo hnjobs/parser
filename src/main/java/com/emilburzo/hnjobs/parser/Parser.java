@@ -9,6 +9,7 @@ import com.google.gson.Gson;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.ConstantScoreQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -149,7 +150,7 @@ public class Parser {
 
     private void saveJob(String id, Job job) {
         IndexResponse response = Main.getClient().prepareIndex(Index.HNJOBS, Type.JOB, id)
-                .setSource(new Gson().toJson(job))
+                .setSource(new Gson().toJson(job), XContentType.JSON)
                 .get();
     }
 

@@ -3,7 +3,9 @@ package com.emilburzo.hnjobs.main;
 
 import com.emilburzo.hnjobs.parser.Parser;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -25,7 +27,8 @@ public class Main {
     }
 
     private static void initEs() throws UnknownHostException {
-        client = TransportClient.builder().build().addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("hnjobs"), 9300));
+        client = new PreBuiltTransportClient(Settings.EMPTY)
+                .addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName("hnjobs"), 9300));
     }
 
     public static TransportClient getClient() {
