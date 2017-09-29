@@ -71,16 +71,16 @@ public class Parser {
             return;
         }
 
-        parseJobThread(thread);
+        parseJobThread(URL.BASE_URL + thread.linkId + "&p=1");
 
         logger.info(String.format("Found %d jobs", jobs));
     }
 
-    private void parseJobThread(JobThread thread) throws IOException {
-        logger.info(String.format("Parsing job thread %s", thread.text));
+    private void parseJobThread(String url) throws IOException {
+        logger.info(String.format("Parsing job thread %s - %s", thread.text, url));
 
         // get all the html content from the thread
-        String content = HttpClient.getUrl(URL.BASE_URL + thread.linkId);
+        String content = HttpClient.getUrl(url);
 
         // parse it
         Document doc = Jsoup.parse(content);
@@ -107,6 +107,16 @@ public class Parser {
 
                 parseJob(aThing);
             }
+        }
+
+        // do we have a `More` link?
+        Elements moreLinks = doc.getElementsByClass("morelink");
+
+        // if we do, follow it
+        for (Element moreLink : moreLinks) {
+            String href = moreLink.attr("href");
+
+            parseJobThread(String.format("%s%s", URL.BASE_URL, href));
         }
     }
 
