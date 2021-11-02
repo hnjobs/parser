@@ -33,9 +33,10 @@ public class Constants {
         public static final String TITLE = "title";
         public static final String DEADMARK = "deadmark";
         public static final String MORELINK = "morelink";
-        public static final String STORYLINK = "storylink";
+        public static final String STORYLINK = "athing";
         public static final String HREF = "href";
         public static final String WHO_IS_HIRING = "Who is hiring";
         public static final String AGE = "age";
+        public static final String ID = "id";
     }
 }

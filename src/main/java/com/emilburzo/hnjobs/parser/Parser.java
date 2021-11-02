@@ -51,7 +51,7 @@ public class Parser {
         Elements storylinks = doc.getElementsByClass(Parse.STORYLINK);
 
         for (Element storyLink : storylinks) {
-            String linkId = storyLink.attr(Parse.HREF);
+            String linkId = storyLink.attr(Parse.ID);
             String linkText = storyLink.text();
 
             // look only for the last "Who is hiring?" thread
@@ -71,7 +71,7 @@ public class Parser {
             return;
         }
 
-        parseJobThread(URL.BASE_URL + thread.linkId + "&p=1");
+        parseJobThread(URL.BASE_URL + "item?id=" + thread.linkId + "&p=1");
 
         logger.info(String.format("Found %d jobs", jobs));
     }
