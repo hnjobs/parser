@@ -27,7 +27,7 @@ public class Main {
         }
     }
 
-    private void initEs() throws UnknownHostException {
+    private static void initEs() throws UnknownHostException {
         client = TransportClient.builder().build().addTransportAddress(new InetSocketTransportAddress(
                 InetAddress.getByName(System.getenv().getOrDefault(ELASTICSEARCH_HOST, "hnjobs")),
                 Integer.parseInt(System.getenv().getOrDefault(ELASTICSEARCH_PORT, "9300")))
