@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: hnjobs-parser-often
+spec:
+  schedule: "*/10 * 1-5 * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: hnjobs-parser-often
+              image: emilburzo/hnjobs-parser:latest
+              env:
+                - name: ELASTICSEARCH_HOST
+                  value: "192.168.0.4"
+                - name: ELASTICSEARCH_PORT
+                  value: "7938"
+          restartPolicy: Never
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: hnjobs-parser-rarely
+spec:
+  schedule: "*/45 * 6-31 * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: hnjobs-parser-rarely
+              image: emilburzo/hnjobs-parser:latest
+              env:
+                - name: ELASTICSEARCH_HOST
+                  value: "192.168.0.4"
+                - name: ELASTICSEARCH_PORT
+                  value: "7938"
+          restartPolicy: Never
