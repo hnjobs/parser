@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: hnjobs-parser-often
 spec:
-  schedule: "*/10 * 1-5 * *"
+  schedule: "*/9 * 1-5 * *"
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
@@ -24,7 +24,7 @@ kind: CronJob
 metadata:
   name: hnjobs-parser-rarely
 spec:
-  schedule: "*/45 * 6-31 * *"
+  schedule: "*/43 * 6-31 * *"
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
