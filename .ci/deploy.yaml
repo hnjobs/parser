@@ -5,8 +5,14 @@ metadata:
 spec:
   schedule: "*/9 * 1-5 * *"
   concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 120
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
   jobTemplate:
     spec:
+      activeDeadlineSeconds: 900
+      ttlSecondsAfterFinished: 3600
+      backoffLimit: 3
       template:
         spec:
           containers:
@@ -26,8 +32,14 @@ metadata:
 spec:
   schedule: "*/43 * 6-31 * *"
   concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 120
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
   jobTemplate:
     spec:
+      activeDeadlineSeconds: 900
+      ttlSecondsAfterFinished: 3600
+      backoffLimit: 3
       template:
         spec:
           containers:
