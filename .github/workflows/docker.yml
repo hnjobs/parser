@@ -33,4 +33,4 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: emilburzo/hnjobs-parser:latest,emilburzo/hnjobs-parser:${{ github.run_number }},emilburzo/hnjobs-parser:latest,emilburzo/hnjobs-parser:${{ env.SHORT_SHA }}
+          tags: emilburzo/hnjobs-parser:latest,emilburzo/hnjobs-parser:${{ github.run_number }},emilburzo/hnjobs-parser:${{ env.SHORT_SHA }}
