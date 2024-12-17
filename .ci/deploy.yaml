@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: hnjobs-parser-often
 spec:
-  schedule: "*/9 * 1-5 * *"
+  schedule: "*/49 * 1-5 * *"
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 120
   successfulJobsHistoryLimit: 2
@@ -30,7 +30,7 @@ kind: CronJob
 metadata:
   name: hnjobs-parser-rarely
 spec:
-  schedule: "*/43 * 6-31 * *"
+  schedule: "49 */4 6-31 * *"
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 120
   successfulJobsHistoryLimit: 2
