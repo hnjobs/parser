@@ -2,18 +2,16 @@ package com.emilburzo.hnjobs.main;
 
 
 import com.emilburzo.hnjobs.parser.Parser;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import org.apache.http.HttpHost;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestHighLevelClient;
 
 public class Main {
 
     private static final String ELASTICSEARCH_HOST = "ELASTICSEARCH_HOST";
     private static final String ELASTICSEARCH_PORT = "ELASTICSEARCH_PORT";
 
-    private static TransportClient client;
+    private static RestHighLevelClient client;
 
     public static void main(String[] args) {
         try {
@@ -23,18 +21,24 @@ public class Main {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            client.close();
+            try {
+                client.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
-    private static void initEs() throws UnknownHostException {
-        client = TransportClient.builder().build().addTransportAddress(new InetSocketTransportAddress(
-                InetAddress.getByName(System.getenv().getOrDefault(ELASTICSEARCH_HOST, "hnjobs")),
-                Integer.parseInt(System.getenv().getOrDefault(ELASTICSEARCH_PORT, "9300")))
+    private static void initEs() {
+        String host = System.getenv().getOrDefault(ELASTICSEARCH_HOST, "localhost");
+        int port = Integer.parseInt(System.getenv().getOrDefault(ELASTICSEARCH_PORT, "9200"));
+
+        client = new RestHighLevelClient(
+                RestClient.builder(new HttpHost(host, port, "http"))
         );
     }
 
-    public static TransportClient getClient() {
+    public static RestHighLevelClient getClient() {
         return client;
     }
 }

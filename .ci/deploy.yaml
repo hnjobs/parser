@@ -22,7 +22,7 @@ spec:
                 - name: ELASTICSEARCH_HOST
                   value: "192.168.0.4"
                 - name: ELASTICSEARCH_PORT
-                  value: "7938"
+                  value: "7940"
           restartPolicy: Never
 ---
 apiVersion: batch/v1
@@ -49,5 +49,5 @@ spec:
                 - name: ELASTICSEARCH_HOST
                   value: "192.168.0.4"
                 - name: ELASTICSEARCH_PORT
-                  value: "7938"
+                  value: "7940"
           restartPolicy: Never

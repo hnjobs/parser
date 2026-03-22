@@ -6,12 +6,20 @@ import com.emilburzo.hnjobs.pojo.Job;
 import com.emilburzo.hnjobs.pojo.JobThread;
 import com.emilburzo.hnjobs.util.DateUtil;
 import com.google.gson.Gson;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.ClearScrollRequest;
+import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.action.search.SearchScrollRequest;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.core.TimeValue;
+import org.elasticsearch.xcontent.XContentType;
 import org.elasticsearch.index.query.ConstantScoreQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -158,9 +166,14 @@ public class Parser {
     }
 
     private void saveJob(String id, Job job) {
-        IndexResponse response = Main.getClient().prepareIndex(Index.HNJOBS, Type.JOB, id)
-                .setSource(new Gson().toJson(job))
-                .get();
+        try {
+            IndexRequest request = new IndexRequest(Index.HNJOBS)
+                    .id(id)
+                    .source(new Gson().toJson(job), XContentType.JSON);
+            IndexResponse response = Main.getClient().index(request, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to index job " + id, e);
+        }
     }
 
     /**
@@ -169,27 +182,50 @@ public class Parser {
     private void cleanOldJobs() {
         logger.info("Cleaning old jobs");
 
-        ConstantScoreQueryBuilder qb = QueryBuilders.constantScoreQuery(QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery(Field.SRC, thread.id)));
+        try {
+            ConstantScoreQueryBuilder qb = QueryBuilders.constantScoreQuery(
+                    QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery(Field.SRC, thread.id))
+            );
 
-        SearchResponse resp = Main.getClient().prepareSearch(Index.HNJOBS)
-                .setTypes(Type.JOB)
-                .setScroll(new TimeValue(60000))
-                .setQuery(qb)
-                .setSize(100).execute().actionGet();
+            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()
+                    .query(qb)
+                    .size(100);
 
-        while (true) {
-            for (SearchHit hit : resp.getHits().getHits()) {
-                Main.getClient().prepareDelete(Index.HNJOBS, Type.JOB, hit.getId()).get();
+            SearchRequest searchRequest = new SearchRequest(Index.HNJOBS)
+                    .source(sourceBuilder)
+                    .scroll(new TimeValue(60000));
 
-                jobsDeleted++;
+            SearchResponse resp = Main.getClient().search(searchRequest, RequestOptions.DEFAULT);
+
+            String scrollId = resp.getScrollId();
+
+            while (true) {
+                for (SearchHit hit : resp.getHits().getHits()) {
+                    Main.getClient().delete(
+                            new DeleteRequest(Index.HNJOBS, hit.getId()),
+                            RequestOptions.DEFAULT
+                    );
+                    jobsDeleted++;
+                }
+
+                SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId)
+                        .scroll(new TimeValue(60000));
+                resp = Main.getClient().scroll(scrollRequest, RequestOptions.DEFAULT);
+                scrollId = resp.getScrollId();
+
+                // stop when there are no more hits
+                if (resp.getHits().getHits().length == 0) {
+                    break;
+                }
             }
 
-            resp = Main.getClient().prepareSearchScroll(resp.getScrollId()).setScroll(new TimeValue(60000)).execute().actionGet();
+            // Clean up scroll context
+            ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
+            clearScrollRequest.addScrollId(scrollId);
+            Main.getClient().clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
 
-            // stop when there are no more hits
-            if (resp.getHits().getHits().length == 0) {
-                break;
-            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to clean old jobs", e);
         }
 
         logger.info(String.format("Deleted %d old jobs", jobsDeleted));
