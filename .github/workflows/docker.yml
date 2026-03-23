@@ -36,4 +36,4 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/hnjobs-parser:latest,ghcr.io/${{ github.repository_owner }}/hnjobs-parser:${{ github.run_number }},ghcr.io/${{ github.repository_owner }}/hnjobs-parser:${{ env.SHORT_SHA }}
+          tags: ghcr.io/hnjobs/parser:latest,ghcr.io/hnjobs/parser:${{ github.run_number }},ghcr.io/hnjobs/parser:${{ env.SHORT_SHA }}
