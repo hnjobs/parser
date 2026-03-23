@@ -1,14 +1,8 @@
 package com.emilburzo.hnjobs.pojo;
 
-public class JobThread {
-
-    public Long id;
-    public String linkId;
-    public String text;
+public record JobThread(Long id, String linkId, String text) {
 
     public JobThread(String linkId, String text) {
-        this.linkId = linkId;
-        this.text = text;
-        this.id = Long.valueOf(linkId);
+        this(Long.valueOf(linkId), linkId, text);
     }
 }

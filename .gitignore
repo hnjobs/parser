@@ -2,3 +2,4 @@
 target
 *.iml
 /deploy.sh
+dependency-reduced-pom.xml

@@ -1,11 +1,4 @@
 package com.emilburzo.hnjobs.pojo;
 
-public class Job {
-
-    public String author;
-    public Long timestamp;
-    public Long src;
-    public String body;
-    public String bodyHtml;
-
+public record Job(String author, Long timestamp, Long src, String body, String bodyHtml) {
 }

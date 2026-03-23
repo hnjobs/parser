@@ -26,7 +26,6 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
-import java.text.ParseException;
 import java.util.logging.Logger;
 
 import static com.emilburzo.hnjobs.util.Constants.*;
@@ -40,7 +39,7 @@ public class Parser {
     private int jobs = 0;
     private int jobsDeleted = 0;
 
-    public Parser() throws IOException, ParseException {
+    public Parser() throws IOException {
         loadJobThread();
 
         parseJobThread();
@@ -48,7 +47,7 @@ public class Parser {
         cleanOldJobs();
     }
 
-    private void loadJobThread() throws IOException, ParseException {
+    private void loadJobThread() throws IOException {
         // fetch submissions from the "whoishiring" user
         String content = HttpClient.getUrl(URL.WHOISHIRING_URL);
 
@@ -79,13 +78,13 @@ public class Parser {
             return;
         }
 
-        parseJobThread(URL.BASE_URL + "item?id=" + thread.linkId + "&p=1");
+        parseJobThread(URL.BASE_URL + "item?id=" + thread.linkId() + "&p=1");
 
         logger.info(String.format("Found %d jobs", jobs));
     }
 
     private void parseJobThread(String url) throws IOException {
-        logger.info(String.format("Parsing job thread %s - %s", thread.text, url));
+        logger.info(String.format("Parsing job thread %s - %s", thread.text(), url));
 
         // get all the html content from the thread
         String content = HttpClient.getUrl(url);
@@ -151,13 +150,13 @@ public class Parser {
         // parse post id
         String postId = link.substring(link.indexOf("=") + 1);
 
-        // save everything neatly in a POJO so we can pass it to Gson when saving
-        Job job = new Job();
-        job.author = author;
-        job.timestamp = DateUtil.getAbsoluteDate(linkAge).getTime();
-        job.src = thread.id;
-        job.body = Jsoup.parse(body.toString()).text();
-        job.bodyHtml = body.toString();
+        Job job = new Job(
+                author,
+                DateUtil.getAbsoluteDate(linkAge).toEpochMilli(),
+                thread.id(),
+                Jsoup.parse(body.toString()).text(),
+                body.toString()
+        );
 
         // persist to elasticsearch
         saveJob(postId, job);
@@ -184,7 +183,7 @@ public class Parser {
 
         try {
             ConstantScoreQueryBuilder qb = QueryBuilders.constantScoreQuery(
-                    QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery(Field.SRC, thread.id))
+                    QueryBuilders.boolQuery().mustNot(QueryBuilders.termQuery(Field.SRC, thread.id()))
             );
 
             SearchSourceBuilder sourceBuilder = new SearchSourceBuilder()

@@ -1,20 +1,25 @@
 package com.emilburzo.hnjobs.http;
 
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
-
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 public class HttpClient {
 
+    private static final java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+
     public static String getUrl(String url) throws IOException {
-        Request request = new Request.Builder()
-                .url(url)
+        var request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
                 .build();
 
-        Response response = new OkHttpClient().newCall(request).execute();
-        return response.body().string();
+        try {
+            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            return response.body();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Request interrupted", e);
+        }
     }
-
 }

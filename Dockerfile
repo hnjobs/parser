@@ -1,8 +1,5 @@
-FROM amazoncorretto:8
+FROM gcr.io/distroless/java21-debian12:nonroot
 
-ADD target/lib /app/lib
-ADD target/parser-1.0-SNAPSHOT.jar /app/parser.jar
+COPY target/parser-1.0-SNAPSHOT.jar /app/parser.jar
 
-WORKDIR /app
-
-CMD ["java", "-jar", "parser.jar"]
+ENTRYPOINT ["java", "-jar", "/app/parser.jar"]
