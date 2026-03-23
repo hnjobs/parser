@@ -16,7 +16,7 @@ spec:
         spec:
           containers:
             - name: hnjobs-parser-often
-              image: emilburzo/hnjobs-parser:SHORT_SHA
+              image: ghcr.io/emilburzo/hnjobs-parser:SHORT_SHA
               env:
                 - name: ELASTICSEARCH_HOST
                   value: "192.168.0.4"
@@ -42,7 +42,7 @@ spec:
         spec:
           containers:
             - name: hnjobs-parser-rarely
-              image: emilburzo/hnjobs-parser:SHORT_SHA
+              image: ghcr.io/emilburzo/hnjobs-parser:SHORT_SHA
               env:
                 - name: ELASTICSEARCH_HOST
                   value: "192.168.0.4"
