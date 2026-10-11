@@ -19,9 +19,9 @@ spec:
               image: ghcr.io/hnjobs/parser:SHORT_SHA
               env:
                 - name: ELASTICSEARCH_HOST
-                  value: "192.168.0.4"
+                  value: "hnjobs-elasticsearch"
                 - name: ELASTICSEARCH_PORT
-                  value: "7940"
+                  value: "9200"
           restartPolicy: Never
 ---
 apiVersion: batch/v1
@@ -45,7 +45,7 @@ spec:
               image: ghcr.io/hnjobs/parser:SHORT_SHA
               env:
                 - name: ELASTICSEARCH_HOST
-                  value: "192.168.0.4"
+                  value: "hnjobs-elasticsearch"
                 - name: ELASTICSEARCH_PORT
-                  value: "7940"
+                  value: "9200"
           restartPolicy: Never
